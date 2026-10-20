@@ -1,0 +1,16 @@
+# Optional: a local PostgreSQL for development, if you'd rather not use Neon locally.
+#   docker compose up -d
+# Then in backend/.env:
+#   DATABASE_URL=postgres://postgres:postgres@localhost:5432/unstuck
+#   TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/unstuck_test
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: unstuck
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./db/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql
