@@ -4,9 +4,6 @@
 
 Unstuck is a small scheduling app for developer mentorship. A senior dev (Sam, our fictional mentor) publishes open time slots. Junior developers pick a slot for a **code review**, a **debugging session**, or a **career chat**, and say what they're stuck on when they book.
 
-> 🔗 **Live app:** _add your Vercel frontend URL here_
-> 🔗 **API health check:** _add your Vercel backend URL here_ `/api/health`
-
 ---
 
 ## Why this twist on "a booking app"?
