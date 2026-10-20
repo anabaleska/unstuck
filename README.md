@@ -4,9 +4,6 @@
 
 Unstuck is a small scheduling app for developer mentorship. A senior dev (Sam, our fictional mentor) publishes open time slots. Junior developers pick a slot for a **code review**, a **debugging session**, or a **career chat**, and say what they're stuck on when they book.
 
-> 🔗 **Live app:** _add your Vercel frontend URL here_
-> 🔗 **API health check:** _add your Vercel backend URL here_ `/api/health`
-
 ---
 
 ## Why this twist on "a booking app"?
@@ -140,11 +137,3 @@ _Write this section in your own words. A starting point:_
 
 I built Unstuck with **Claude Code** as a pair programmer. I decided the product direction (dev mentorship, session types, "context before the call"), the stack, and the constraints: plain SQL instead of an ORM so I could explain every query, and no unnecessary abstractions. Claude Code scaffolded the code, which I reviewed step by step. I asked it to explain each important decision (they're collected in `docs/DECISIONS.md`) and to prove the core rule with a test instead of assuming it works. It also tested the UI in a browser, including the "someone booked your slot while you were typing" case.
 
-## What I'd improve with more time
-
-- **AI booking brief** (Gemini): turn the mentee's description into a short brief for the mentor and personalised prep tips for the mentee, with a template fallback if the AI is slow or down
-- **Auth for the mentor area:** all mentor routes are under `/api/mentor`, so one NestJS guard would protect them
-- **Email confirmations and reminders** (e.g. Resend), plus a **cancel/reschedule link** for mentees
-- **Google Calendar sync:** hide slots that clash with the mentor's real events
-- **Recurring availability** ("every Tuesday 14:00–17:00") instead of publishing slots one by one
-- Frontend tests (React Testing Library / Playwright) for the booking flow
