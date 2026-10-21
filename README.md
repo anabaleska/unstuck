@@ -1,5 +1,7 @@
 # Unstuck
 
+🔗 **Live app:** https://unstuck-9yri.vercel.app
+
 **Book 1:1 time with a senior developer. Show up with context, leave unstuck.**
 
 Unstuck is a small scheduling app for developer mentorship. A senior dev (Sam, our fictional mentor) publishes open time slots. Junior developers pick a slot for a **code review**, a **debugging session**, or a **career chat**, and say what they're stuck on when they book.
