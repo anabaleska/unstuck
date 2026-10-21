@@ -1,3 +1,4 @@
+import { AiBrief } from '../ai/ai-brief.types';
 import { SessionType } from '../common/session-types';
 
 export interface Slot {
@@ -17,5 +18,6 @@ export interface MentorSlot extends Slot {
     topic: string;
     resourceUrl: string | null;
     createdAt: string;
+    aiBrief: AiBrief | null;
   } | null;
 }

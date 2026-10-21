@@ -10,6 +10,14 @@ export interface Slot {
   durationMinutes: number
 }
 
+/** Written by AI (Gemini) once per booking. null = not generated yet, or the AI was unavailable. */
+export interface AiBrief {
+  summary: string
+  openingQuestions: string[]
+  missingInfo: string | null
+  confirmationMessage: string
+}
+
 export interface Booking {
   id: string
   name: string
@@ -17,6 +25,7 @@ export interface Booking {
   topic: string
   resourceUrl: string | null
   createdAt: string
+  aiBrief: AiBrief | null
   slot: Slot
 }
 

@@ -13,6 +13,16 @@ export default function BookingConfirmationPage() {
   const { id = '' } = useParams()
   const bookingQuery = useQuery({ queryKey: ['booking', id], queryFn: () => api.getBooking(id) })
 
+  // Ask the API for the AI brief once the booking has loaded (only if it doesn't have one yet).
+  // The page doesn't wait for it: everything else shows immediately.
+  const briefQuery = useQuery({
+    queryKey: ['brief', id],
+    queryFn: () => api.getOrCreateBrief(id),
+    enabled: bookingQuery.isSuccess && !bookingQuery.data.aiBrief,
+    staleTime: Infinity, // generated once, never needs refreshing
+    retry: false, // if the AI is down, just use the fallback message
+  })
+
   if (bookingQuery.isPending) return <LoadingState label="Loading your booking…" />
   if (bookingQuery.isError) return <ErrorState message={bookingQuery.error.message} />
 
@@ -20,6 +30,7 @@ export default function BookingConfirmationPage() {
   const { slot } = booking
   const info = SESSION_TYPES[slot.sessionType]
   const firstName = booking.name.split(' ')[0]
+  const aiMessage = (booking.aiBrief ?? briefQuery.data?.aiBrief)?.confirmationMessage
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -28,7 +39,24 @@ export default function BookingConfirmationPage() {
           <CircleCheck className="size-9" aria-hidden />
         </div>
         <h1 className="mt-5 font-display text-4xl font-bold tracking-tight">You’re booked, {firstName}!</h1>
-        <p className="mt-2 text-stone-600">
+
+        <div className="mx-auto mt-4 max-w-lg" aria-live="polite">
+          {briefQuery.isFetching ? (
+            <p className="animate-pulse text-stone-400">Writing you a short note…</p>
+          ) : aiMessage ? (
+            <>
+              <p className="text-lg text-stone-800">{aiMessage}</p>
+              <p className="mt-1 text-xs text-stone-400">Written by AI</p>
+            </>
+          ) : (
+            <p className="text-lg text-stone-800">
+              {MENTOR.name.split(' ')[0]} will read what you shared before your {info.label.toLowerCase()} session, so you can
+              get straight to it.
+            </p>
+          )}
+        </div>
+
+        <p className="mt-4 text-stone-600">
           {MENTOR.name} will send a video link to <span className="font-medium text-stone-900">{booking.email}</span>{' '}
           before the session.
         </p>
