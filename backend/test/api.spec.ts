@@ -10,6 +10,8 @@ import { Pool } from 'pg';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { runMigrations } from '../scripts/migrate';
+import { AiService } from '../src/ai/ai.service';
+import { AiBrief } from '../src/ai/ai-brief.types';
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_DATABASE_URL) {
@@ -17,6 +19,17 @@ if (!TEST_DATABASE_URL) {
 }
 // Make the app under test use the test database.
 process.env.DATABASE_URL = TEST_DATABASE_URL;
+
+// A fake AI, so tests never call Gemini (free, fast, works offline).
+// NestJS dependency injection lets us swap it in with overrideProvider() below.
+const fakeAi = { generateBrief: jest.fn<Promise<AiBrief | null>, unknown[]>() };
+
+const sampleBrief: AiBrief = {
+  summary: 'useEffect runs twice in development.',
+  openingQuestions: ['Is StrictMode enabled?', 'What does the effect do?'],
+  missingInfo: null,
+  confirmationMessage: 'You are all set, Ana!',
+};
 
 const HOUR = 60 * 60 * 1000;
 const hoursFromNow = (hours: number) => new Date(Date.now() + hours * HOUR).toISOString();
@@ -29,7 +42,10 @@ describe('Unstuck API', () => {
     await runMigrations(TEST_DATABASE_URL);
     db = new Pool({ connectionString: TEST_DATABASE_URL });
 
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(AiService)
+      .useValue(fakeAi)
+      .compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
     await app.listen(0); // random free port; a real listening server handles parallel requests cleanly
@@ -37,6 +53,7 @@ describe('Unstuck API', () => {
 
   beforeEach(async () => {
     await db.query('TRUNCATE bookings, slots');
+    fakeAi.generateBrief.mockReset();
   });
 
   afterAll(async () => {
@@ -180,6 +197,56 @@ describe('Unstuck API', () => {
 
       const res = await api().get(`/api/bookings/${created.body.id}`).expect(200);
       expect(res.body.slot).toMatchObject({ sessionType: 'debugging', durationMinutes: 45 });
+    });
+  });
+
+  describe('AI session brief', () => {
+    async function createBooking() {
+      const slot = await createSlot(24, 45, 'debugging');
+      const res = await api().post('/api/bookings').send(validBooking(slot.id)).expect(201);
+      return res.body as { id: string; aiBrief: AiBrief | null };
+    }
+
+    it('starts without a brief', async () => {
+      const booking = await createBooking();
+      expect(booking.aiBrief).toBeNull();
+      expect(fakeAi.generateBrief).not.toHaveBeenCalled(); // booking never waits for the AI
+    });
+
+    it('generates the brief once, saves it, and shows it to the mentor', async () => {
+      fakeAi.generateBrief.mockResolvedValue(sampleBrief);
+      const booking = await createBooking();
+
+      const first = await api().post(`/api/bookings/${booking.id}/brief`).expect(200);
+      const second = await api().post(`/api/bookings/${booking.id}/brief`).expect(200);
+
+      expect(first.body.aiBrief).toEqual(sampleBrief);
+      expect(second.body.aiBrief).toEqual(sampleBrief);
+      expect(fakeAi.generateBrief).toHaveBeenCalledTimes(1); // second call used the saved brief
+
+      expect(fakeAi.generateBrief).toHaveBeenCalledWith(
+        expect.objectContaining({ menteeName: 'Ana', sessionType: 'debugging' }),
+      );
+
+      const mentor = await api().get('/api/mentor/slots').expect(200);
+      expect(mentor.body[0].booking.aiBrief).toEqual(sampleBrief);
+    });
+
+    it('returns null (and saves nothing) when the AI is unavailable', async () => {
+      fakeAi.generateBrief.mockResolvedValue(null);
+      const booking = await createBooking();
+
+      const res = await api().post(`/api/bookings/${booking.id}/brief`).expect(200);
+      expect(res.body.aiBrief).toBeNull();
+
+      // A later call tries again, and can succeed.
+      fakeAi.generateBrief.mockResolvedValue(sampleBrief);
+      const retry = await api().post(`/api/bookings/${booking.id}/brief`).expect(200);
+      expect(retry.body.aiBrief).toEqual(sampleBrief);
+    });
+
+    it('returns 404 for an unknown booking', async () => {
+      await api().post('/api/bookings/00000000-0000-4000-8000-000000000000/brief').expect(404);
     });
   });
 });

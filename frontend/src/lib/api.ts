@@ -1,5 +1,5 @@
 import { API_URL } from '../config'
-import type { Booking, MentorSlot, NewBooking, NewSlot, Slot } from './types'
+import type { AiBrief, Booking, MentorSlot, NewBooking, NewSlot, Slot } from './types'
 
 /** An error from the API, with its HTTP status (e.g. 409 = slot already taken). */
 export class ApiError extends Error {
@@ -40,6 +40,10 @@ export const api = {
 
   createBooking: (booking: NewBooking) =>
     request<Booking>('/bookings', { method: 'POST', body: JSON.stringify(booking) }),
+
+  // Generates the AI brief the first time, then returns the saved one. aiBrief is null if the AI is unavailable.
+  getOrCreateBrief: (bookingId: string) =>
+    request<{ aiBrief: AiBrief | null }>(`/bookings/${bookingId}/brief`, { method: 'POST' }),
 
   getMentorSlots: () => request<MentorSlot[]>('/mentor/slots'),
 

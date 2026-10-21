@@ -100,8 +100,21 @@ Instead of hand-written `useEffect` + `useState` for every request, React Query 
 
 API tests run against a **real PostgreSQL** database, not mocks. Most of the important behaviour lives in the database (constraints), so a mock would test nothing meaningful. Each test starts from empty tables (`TRUNCATE`). They use the same `configureApp()` as production, so validation and the `/api` prefix behave identically.
 
-## What we intentionally left out
+The one thing we *do* fake is the AI: `overrideProvider(AiService).useValue(fakeAi)` swaps the real Gemini service for a fake one. Dependency injection makes this a one-line change, and tests stay free, fast and offline.
 
-- **Auth:** not required by the brief (see #7 for how it would be added).
-- **AI features:** planned next. They'll be added as a separate `AiModule` so a slow or failing AI can never break booking.
-- **Emails, cancellations, recurring slots:** listed under "What I'd improve" in the README.
+## 13. The AI session brief
+
+**What it's for:** saving the *mentor's* prep time. The mentee's free-text problem becomes a one-line summary, opening questions, and a "missing info" hint. The mentee only gets a friendly confirmation message.
+
+**Why the AI doesn't help the mentee solve the problem:** people book Unstuck to get help from a human. An AI that tries to solve the problem competes with the mentor and makes the booking feel pointless. The prompt explicitly says *"Do NOT try to solve the problem."*
+
+**How it's built (`src/ai/`, `POST /api/bookings/:id/brief`):**
+- **Separate from booking.** `POST /bookings` never calls the AI, so a slow or failing AI can't break or delay booking. The confirmation page asks for the brief afterwards, and the mentor has a "Prepare session brief" button as a backup.
+- **Get-or-create.** The first successful call saves the brief in `bookings.ai_brief` (JSONB). Later calls return the saved brief without calling Gemini. `COALESCE(ai_brief, $2)` means that if two requests generate at the same moment, the first save wins and both get the same brief.
+- **Failure = `null`, not an error.** No key, a 20-second timeout, a Gemini error, or unusable output all return `{ aiBrief: null }`, and the UI shows non-AI text.
+- **Structured output, then validated.** Gemini gets a JSON schema (`responseJsonSchema`). We still check the shape and trim lengths in `parseBrief()` before saving, because model output is never trusted blindly.
+- **Prompt injection.** The mentee's text is placed between markers and the instructions say to ignore commands inside it. React escapes all output, so the worst case is an odd brief for the person who wrote the text.
+- **Key and model on the server.** `GEMINI_API_KEY` never reaches the browser. `GEMINI_MODEL` can switch models without code changes.
+
+**Why a POST:** the first call creates data and costs an API call, so it isn't a pure read. It's safe to repeat (idempotent) because later calls return the saved result.
+

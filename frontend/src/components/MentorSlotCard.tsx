@@ -3,6 +3,7 @@ import { ExternalLink, LoaderCircle, Mail, Trash2 } from 'lucide-react'
 import { api } from '../lib/api'
 import { formatTimeRange } from '../lib/dates'
 import type { MentorSlot } from '../lib/types'
+import SessionBrief from './SessionBrief'
 import SessionTypeBadge from './SessionTypeBadge'
 
 export default function MentorSlotCard({ slot }: { slot: MentorSlot }) {
@@ -68,6 +69,7 @@ export default function MentorSlotCard({ slot }: { slot: MentorSlot }) {
               <ExternalLink className="size-4 shrink-0" aria-hidden /> {booking.resourceUrl}
             </a>
           )}
+          <SessionBrief bookingId={booking.id} brief={booking.aiBrief} />
         </div>
       )}
     </li>

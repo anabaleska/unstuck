@@ -47,7 +47,8 @@ export class SlotsService {
                    'email', b.email,
                    'topic', b.topic,
                    'resourceUrl', b.resource_url,
-                   'createdAt', b.created_at)
+                   'createdAt', b.created_at,
+                   'aiBrief', b.ai_brief)
           FROM bookings b
           WHERE b.slot_id = s.id) AS booking
        FROM slots s
